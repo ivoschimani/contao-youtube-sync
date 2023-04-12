@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 $GLOBALS['TL_LANG']['tl_news_archive']['youtube_sync_legend'] = 'YouTube synchronisation';
 $GLOBALS['TL_LANG']['tl_news_archive']['enable_youtube_sync'] = ['Enable YouTube synchronisation', 'Enables YouTube synchronisation for this archive.'];
+$GLOBALS['TL_LANG']['tl_news_archive']['enable_youtube_sync_channel'] = ['Channel synchronisation', 'Sync a specific YouTube channel.'];
+$GLOBALS['TL_LANG']['tl_news_archive']['enable_youtube_sync_playlist'] = ['Playlist synchronisation', 'Sync a specific YouTube playlist.'];
 $GLOBALS['TL_LANG']['tl_news_archive']['youtube_playlist_id'] = ['YouTube playlist ID', 'The YouTube playlist ID from which YouTube videos should be fetched as news articles.'];
 $GLOBALS['TL_LANG']['tl_news_archive']['youtube_sync_author'] = ['Author', 'The author any new news article will be assigned to.'];
 $GLOBALS['TL_LANG']['tl_news_archive']['youtube_sync_publish'] = ['Publish new entries', 'Automatically publish newly synchronised entries.'];

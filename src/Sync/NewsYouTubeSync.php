@@ -19,6 +19,7 @@ use Contao\FilesModel;
 use Contao\NewsArchiveModel;
 use Contao\NewsModel;
 use Doctrine\DBAL\Connection;
+use Google\Service\YouTube\Video;
 use InspiredMinds\ContaoYouTubeSync\Event\NewsYouTubeSyncEvent;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -46,8 +47,7 @@ class NewsYouTubeSync
         $this->framework->initialize();
 
         $enabledNewsArchives = NewsArchiveModel::findBy([
-            'enable_youtube_sync = 1',
-            "youtube_playlist_id != ''",
+            'enable_youtube_sync = 1'
         ], []);
 
         if (null === $enabledNewsArchives) {
@@ -62,6 +62,15 @@ class NewsYouTubeSync
 
     private function syncNewsArchive(NewsArchiveModel $newsArchive): void
     {
+        if ($newsArchive->enable_youtube_sync_playlist && $newsArchive->youtube_playlist_id) {
+            $this->syncPlaylist($newsArchive);
+        } elseif ($newsArchive->enable_youtube_sync_channel && $newsArchive->youtube_channel_id) {
+            $this->syncChannel($newsArchive);
+        }
+    }
+
+    private function syncPlaylist(NewsArchiveModel $newsArchive): void
+    {
         $params = [
             'playlistId' => $newsArchive->youtube_playlist_id,
             'maxResults' => 50,
@@ -72,6 +81,9 @@ class NewsYouTubeSync
 
             /** @var \Google_Service_YouTube_PlaylistItem $video */
             foreach ($videos->getItems() as $video) {
+                $video = $this->youtube->videos->listVideos('snippet,contentDetails,status', [
+                    'id' => $video->getContentDetails()->getVideoId(),
+                ])->getItems()[0];
                 $this->processVideo($newsArchive, $video);
             }
 
@@ -81,19 +93,46 @@ class NewsYouTubeSync
         } while (null !== $videos->getNextPageToken());
     }
 
-    private function processVideo(NewsArchiveModel $newsArchive, \Google_Service_YouTube_PlaylistItem $video): void
+    private function syncChannel(NewsArchiveModel $newsArchive): void
+    {
+        $params = [
+            'channelId' => $newsArchive->youtube_channel_id,
+            'order' => 'date',
+            'maxResults' => 50,
+        ];
+
+        do {
+            $videos = $this->youtube->search->listSearch('snippet', $params);
+
+            /** @var \Google_Service_YouTube_SearchResult $video */
+            foreach ($videos->getItems() as $video) {
+                if ($video->getId()->getKind() !== 'youtube#video') {
+                    continue;
+                }
+                $video = $this->youtube->videos->listVideos('snippet,contentDetails,status', [
+                    'id' => $video->getId()->getVideoId(),
+                ])->getItems()[0];
+                $this->processVideo($newsArchive, $video);
+            }
+
+            if (null !== $videos->getNextPageToken()) {
+                $params['pageToken'] = $videos->getNextPageToken();
+            }
+        } while (null !== $videos->getNextPageToken());
+    }
+
+    private function processVideo(NewsArchiveModel $newsArchive, Video $video): void
     {
         if ('public' !== $video->getStatus()->getPrivacyStatus()) {
             return;
         }
-
-        $details = $video->getContentDetails();
+        $details = $video;
 
         $news = NewsModel::findOneBy([
             'youtube_id = ?',
             'pid = ?',
         ], [
-            $details->getVideoId(),
+            $details->getId(),
             (int) $newsArchive->id,
         ]);
 
@@ -103,7 +142,7 @@ class NewsYouTubeSync
             $news = new NewsModel();
 
             $news->author = (int) $newsArchive->youtube_sync_author;
-            $news->youtube_id = $details->getVideoId();
+            $news->youtube_id = $details->getId();
             $news->alias = $this->contaoSlug->generate($snippet->getTitle(), $newsArchive->jumpTo, function (string $alias): bool {
                 return ((int) $this->db->fetchOne('SELECT COUNT(*) FROM tl_news WHERE alias = ?', [$alias])) > 0;
             });
@@ -120,14 +159,14 @@ class NewsYouTubeSync
         $news->tstamp = time();
         $news->headline = $snippet->getTitle();
         $news->pid = (int) $newsArchive->id;
-        $news->date = strtotime($details->getVideoPublishedAt());
+        $news->date = strtotime($snippet->getPublishedAt());
         $news->time = $news->date;
         $news->youtube_data = json_encode($video->toSimpleObject());
 
         if (!empty($description = trim((string) $snippet->getDescription()))) {
             // parse URLs (https://gist.github.com/jasny/2000705)
             $description = preg_replace('@(?:(https?)://([^\s<]+)|(www\.[^\s<]+?\.[^\s<]+))(?<![\.,:])@i', '<a href="$0" target="_blank" rel="noopener">$0</a>', $description);
-            $news->teaser = '<p>'.nl2br($description).'</p>';
+            $news->teaser = '<p>' . nl2br($description) . '</p>';
         }
 
         if (null !== ($teaserImage = $this->downloadTeaserImage($newsArchive, $video))) {
@@ -143,7 +182,7 @@ class NewsYouTubeSync
         }
     }
 
-    private function downloadTeaserImage(NewsArchiveModel $newsArchive, \Google_Service_YouTube_PlaylistItem $video): ?FilesModel
+    private function downloadTeaserImage(NewsArchiveModel $newsArchive, Video $video): ?FilesModel
     {
         $thumbnails = $video->getSnippet()->getThumbnails()->toSimpleObject();
         $thumbnailUrl = null;
@@ -160,16 +199,16 @@ class NewsYouTubeSync
 
         if (null !== $thumbnailUrl && null !== ($targetDir = FilesModel::findByUuid($newsArchive->youtube_sync_dir))) {
             $fileInfo = new \SplFileInfo($thumbnailUrl);
-            $videoId = $video->getContentDetails()->getVideoId();
+            $videoId = $video->getId();
 
-            $downloadDir = $targetDir->path.'/'.strtolower(substr($videoId, 0, 1));
-            $downloadPath = $downloadDir.'/'.$videoId.'_'.$fileInfo->getFilename();
+            $downloadDir = $targetDir->path . '/' . strtolower(substr($videoId, 0, 1));
+            $downloadPath = $downloadDir . '/' . $videoId . '_' . $fileInfo->getFilename();
 
-            if (!file_exists($this->projectDir.'/'.$downloadDir)) {
-                mkdir($this->projectDir.'/'.$downloadDir, 0777, true);
+            if (!file_exists($this->projectDir . '/' . $downloadDir)) {
+                mkdir($this->projectDir . '/' . $downloadDir, 0777, true);
             }
 
-            (new \GuzzleHttp\Client())->get($thumbnailUrl, ['sink' => $this->projectDir.'/'.$downloadPath]);
+            (new \GuzzleHttp\Client())->get($thumbnailUrl, ['sink' => $this->projectDir . '/' . $downloadPath]);
 
             return Dbafs::addResource($downloadPath);
         }

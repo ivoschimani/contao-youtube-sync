@@ -34,6 +34,27 @@ $GLOBALS['TL_DCA']['tl_news_archive']['fields']['enable_youtube_sync'] = [
     'sql' => ['type' => 'boolean', 'default' => 0],
 ];
 
+$GLOBALS['TL_DCA']['tl_news_archive']['fields']['enable_youtube_sync_channel'] = [
+    'inputType' => 'checkbox',
+    'exclude' => true,
+    'eval' => ['submitOnChange' => true],
+    'sql' => ['type' => 'boolean', 'default' => 0],
+];
+
+$GLOBALS['TL_DCA']['tl_news_archive']['fields']['enable_youtube_sync_playlist'] = [
+    'inputType' => 'checkbox',
+    'exclude' => true,
+    'eval' => ['submitOnChange' => true],
+    'sql' => ['type' => 'boolean', 'default' => 0],
+];
+
+$GLOBALS['TL_DCA']['tl_news_archive']['fields']['youtube_channel_id'] = [
+    'inputType' => 'text',
+    'exclude' => true,
+    'eval' => ['maxlength' => 64, 'tl_class' => 'w50', 'mandatory' => true],
+    'sql' => ['type' => 'string', 'length' => 64, 'default' => ''],
+];
+
 $GLOBALS['TL_DCA']['tl_news_archive']['fields']['youtube_playlist_id'] = [
     'inputType' => 'text',
     'exclude' => true,
@@ -74,8 +95,11 @@ $GLOBALS['TL_DCA']['tl_news_archive']['fields']['youtube_sync_dir'] = [
 PaletteManipulator::create()
     ->addLegend('youtube_sync_legend', null)
     ->addField('enable_youtube_sync', 'youtube_sync_legend')
-    ->applyToPalette('default', 'tl_news_archive')
-;
+    ->applyToPalette('default', 'tl_news_archive');
 
 $GLOBALS['TL_DCA']['tl_news_archive']['palettes']['__selector__'][] = 'enable_youtube_sync';
-$GLOBALS['TL_DCA']['tl_news_archive']['subpalettes']['enable_youtube_sync'] = 'youtube_playlist_id,youtube_sync_author,youtube_sync_publish,youtube_sync_update,youtube_sync_dir';
+$GLOBALS['TL_DCA']['tl_news_archive']['palettes']['__selector__'][] = 'enable_youtube_sync_playlist';
+$GLOBALS['TL_DCA']['tl_news_archive']['palettes']['__selector__'][] = 'enable_youtube_sync_channel';
+$GLOBALS['TL_DCA']['tl_news_archive']['subpalettes']['enable_youtube_sync'] = 'enable_youtube_sync_channel,enable_youtube_sync_playlist,youtube_sync_author,youtube_sync_publish,youtube_sync_update,youtube_sync_dir';
+$GLOBALS['TL_DCA']['tl_news_archive']['subpalettes']['enable_youtube_sync_playlist'] = 'youtube_playlist_id';
+$GLOBALS['TL_DCA']['tl_news_archive']['subpalettes']['enable_youtube_sync_channel'] = 'youtube_channel_id';

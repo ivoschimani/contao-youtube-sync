@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace InspiredMinds\ContaoYouTubeSync\Event;
 
 use Contao\NewsModel;
+use Google\Service\YouTube\Video;
 use Symfony\Contracts\EventDispatcher\Event;
 
 /**
@@ -31,11 +32,11 @@ class NewsYouTubeSyncEvent extends Event
     private $news;
 
     /**
-     * @var \Google_Service_YouTube_PlaylistItem
+     * @var Video
      */
     private $video;
 
-    public function __construct(NewsModel $news, \Google_Service_YouTube_PlaylistItem $video)
+    public function __construct(NewsModel $news, Video $video)
     {
         $this->news = $news;
         $this->video = $video;
@@ -70,7 +71,7 @@ class NewsYouTubeSyncEvent extends Event
     /**
      * The YouTube video instance.
      */
-    public function getVideo(): \Google_Service_YouTube_PlaylistItem
+    public function getVideo(): Video
     {
         return $this->video;
     }

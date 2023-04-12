@@ -6,6 +6,11 @@ Contao YouTube Sync
 
 This extension allows you to automatically import all videos of a YouTube playlist as news entries in Contao.
 
+Customizations
+==============
+
+Added an option to sync Channel Uploads as news entries.
+
 ## Configuration
 
 First you need to obtain a Google API key.
