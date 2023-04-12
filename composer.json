@@ -1,19 +1,18 @@
 {
-    "name": "inspiredminds/contao-youtube-sync",
+    "name": "ivoschimani/contao-youtube-sync",
     "description": "Contao extension to synchronize a contao news archive with a YouTube playlist.",
     "type": "contao-bundle",
     "license": "LGPL-3.0-or-later",
-    "homepage": "https://github.com/inspiredminds/contao-youtube-sync",
+    "homepage": "https://github.com/ivoschimani/contao-youtube-sync",
     "authors": [
         {
-            "name": "Fritz Michael Gschwantner",
-            "email": "fmg@inspiredminds.at",
+            "name": "Ivo Schimani",
+            "email": "ivo@schimani.de",
             "role": "Developer"
         }
     ],
 	"support": {
-		"issues": "https://github.com/inspiredminds/contao-news-navigation/issues",
-		"source": "https://github.com/inspiredminds/contao-news-navigation",
+		"source": "https://github.com/ivoschimani/contao-youtube-sync",
 		"forum": "https://community.contao.org/de"
 	},
 	"funding": [
